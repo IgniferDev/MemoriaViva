@@ -1,0 +1,118 @@
+<main class="detail-page">
+  @if (loading()) {
+    <div class="loading-state"><mat-spinner diameter="32" /> Cargando colección…</div>
+  } @else if (error() && !collection()) {
+    <mat-card appearance="outlined" class="error-card">
+      <p>{{ error() }}</p>
+      <a mat-button routerLink="/">Volver a la biblioteca</a>
+    </mat-card>
+  } @else if (collection(); as current) {
+    <a class="back-link" routerLink="/">← Biblioteca</a>
+    <section class="collection-hero" [attr.data-kind]="current.kind" [class.collection-hero--covered]="!!current.coverAsset">
+      @if (current.coverAsset) { <img crossorigin="use-credentials" class="hero-cover-image" [src]="coverUrl(current.coverAsset.id)" alt="" /> }
+      <div class="hero-content">
+        <p class="eyebrow">{{ collectionType(current.kind) }}</p>
+        <h1>{{ current.title }}</h1>
+        <p class="description">
+          {{ current.description || 'Cada recuerdo abre una puerta a su historia.' }}
+        </p>
+        <div class="hero-actions">
+          <a class="hero-primary" mat-flat-button color="primary" [routerLink]="['/events/new']" [queryParams]="{collectionId: current.id}">
+            Añadir recuerdo
+          </a>
+          @if (current.items.length) {
+            <a class="hero-read" mat-stroked-button [routerLink]="['/collections', current.id, 'read']">
+              Leer colección
+            </a>
+          }
+          <button class="hero-more" mat-stroked-button type="button" [matMenuTriggerFor]="collectionActions">Más acciones</button>
+          <mat-menu #collectionActions="matMenu">
+            <a mat-menu-item [routerLink]="['/collections', current.id, 'edit']">Editar colección</a>
+            <button mat-menu-item type="button" (click)="toggleExisting()">Añadir recuerdo existente</button>
+            @if (current.items.length) {
+            @if (offline.isDownloaded(current.id)) {
+              <button mat-menu-item type="button" [disabled]="offlineBusy()" (click)="removeOffline()">Quitar copia de este dispositivo</button>
+            } @else {
+              <button mat-menu-item type="button" [disabled]="offlineBusy()" (click)="downloadOffline()">{{ offlineBusy() ? 'Guardando…' : 'Guardar para leer sin conexión' }}</button>
+            }
+            }
+            <button mat-menu-item type="button" [disabled]="archiveBusy()" (click)="exportCollection()">{{ archiveBusy() ? 'Preparando archivo…' : 'Crear archivo portátil .memoria' }}</button>
+          </mat-menu>
+          <div class="action-explanations"><span>Sin conexión: copia de lectura en este dispositivo.</span><span>.memoria: archivo para guardar o trasladar a otro dispositivo.</span></div>
+        </div>
+      </div>
+    </section>
+
+    @if (error()) {
+      <p class="inline-error" role="alert">{{ error() }}</p>
+    }
+    @if (offlineMessage()) { <p class="inline-error" aria-live="polite">{{ offlineMessage() }}</p> }
+    @if (offline.progress(); as progress) {
+      @if (progress.collectionId === current.id) { <p class="sort-note">Guardando datos y medios: {{ progress.completed }} / {{ progress.total }} · {{ (progress.downloadedBytes / 1048576).toFixed(1) }} / {{ (progress.totalBytes / 1048576).toFixed(1) }} MB</p> }
+    }
+
+    <section class="events-section">
+      <div class="section-heading">
+        <div>
+          <h2>Recuerdos</h2>
+          <p>{{ current.items.length }} {{ current.items.length === 1 ? 'momento' : 'momentos' }} en esta colección</p>
+        </div>
+        @if (current.kind === 'TIMELINE') {
+          <span class="sort-note">Orden cronológico</span>
+        }
+      </div>
+
+      @if (!displayItems().length) {
+        <mat-card appearance="outlined" class="empty-card">
+          <span class="empty-mark" aria-hidden="true">✦</span>
+          <h3>El primer recuerdo empieza con una historia.</h3>
+          <p>Añade un momento, una fotografía y las voces que lo recuerdan.</p>
+          <a mat-flat-button color="primary" [routerLink]="['/events/new']" [queryParams]="{collectionId: current.id}">
+            Crear primer recuerdo
+          </a>
+          <button mat-stroked-button type="button" (click)="toggleExisting()">Añadir recuerdo existente</button>
+        </mat-card>
+      } @else {
+        <div class="event-list">
+          @for (item of displayItems(); track item.eventId; let index = $index) {
+            <mat-card appearance="outlined" class="event-card">
+              <a class="event-thumb" [routerLink]="['/collections', current.id, 'read']" [queryParams]="{eventId: item.eventId}" [attr.aria-label]="'Abrir ' + item.event.title">
+                @if (item.event.photos?.[0]; as cover) { <img crossorigin="use-credentials" [src]="coverUrl(cover.asset.id)" [alt]="cover.caption || item.event.title" /> }
+                @else { <span aria-hidden="true">✦</span> }
+                <span class="event-number">{{ (index + 1).toString().padStart(2, '0') }}</span>
+              </a>
+              <a class="event-copy" [routerLink]="['/collections', current.id, 'read']" [queryParams]="{eventId: item.eventId}">
+                <span class="event-date">{{ eventDate(item.event) }}</span>
+                <h3>{{ item.event.title }}</h3>
+                <p>{{ item.event.description || 'Abrir este recuerdo para añadir detalles.' }}</p>
+              </a>
+              <div class="event-actions">
+                <button mat-button type="button" [disabled]="savingOrder() || (current.kind === 'TIMELINE') || index === 0" (click)="moveEvent(index, -1)" aria-label="Mover hacia arriba">↑</button>
+                <button mat-button type="button" [disabled]="savingOrder() || (current.kind === 'TIMELINE') || index === displayItems().length - 1" (click)="moveEvent(index, 1)" aria-label="Mover hacia abajo">↓</button>
+                <button mat-button type="button" (click)="removeEvent(item.eventId)">Quitar</button>
+              </div>
+            </mat-card>
+          }
+        </div>
+      }
+    </section>
+
+    @if (showExisting()) {
+      <section class="existing-events" aria-label="Vincular recuerdo existente">
+        <div class="section-heading"><div><h2>Recuerdos de tu biblioteca</h2><p>Vincúlalos sin duplicar el contenido.</p></div><button mat-button type="button" (click)="toggleExisting()">Cerrar</button></div>
+        <input class="existing-search" type="search" [value]="existingSearch()" (input)="existingSearch.set($any($event.target).value)" placeholder="Filtrar por título" aria-label="Filtrar recuerdos" />
+        @if (!candidateEvents().length) { <p class="muted">No hay otros recuerdos para vincular.</p> }
+        @for (event of candidateEvents(); track event.id) {
+          <div class="existing-row"><div><strong>{{ event.title }}</strong><span>{{ eventDate(event) }}</span></div><button mat-stroked-button type="button" [disabled]="linkingEventId()" (click)="linkExisting(event.id)">{{ linkingEventId() === event.id ? 'Añadiendo…' : 'Añadir' }}</button></div>
+        }
+      </section>
+    }
+
+    <footer class="collection-footer">
+      <span>Actualizada {{ current.updatedAt | date: 'd MMM y' }}</span>
+      <button mat-button color="warn" type="button" [disabled]="deleting()" (click)="deleteCollection()">
+        {{ deleting() ? 'Eliminando…' : 'Eliminar colección' }}
+      </button>
+    </footer>
+  }
+</main>

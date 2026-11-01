@@ -1,0 +1,20 @@
+<main class="portability-page">
+  <a class="back-link" routerLink="/">← Biblioteca</a>
+  <mat-card appearance="outlined" class="portability-card">
+    <p class="eyebrow">Tus recuerdos te pertenecen</p>
+    <h1>Importar una colección</h1>
+    <p class="intro">Abre una copia .memoria. La aplicación verificará estructura e integridad de medios antes de crear una nueva colección; no modifica contenido existente.</p>
+    <label class="file-drop" [class.file-drop--busy]="busy()">
+      <span class="archive-mark" aria-hidden="true">↥</span>
+      <strong>{{ busy() ? (archive.progress() || 'Importando…') : 'Selecciona un archivo .memoria' }}</strong>
+      <span>ZIP portable de Memoria Viva · máximo 500 MB</span>
+      <input #archiveInput type="file" accept=".memoria,application/zip" [disabled]="busy()" (change)="importFile(archiveInput)" />
+    </label>
+    @if (busy()) { <div class="progress"><mat-spinner diameter="24" /><span>{{ archive.progress() }}</span></div> }
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    <div class="archive-notes">
+      <h2>El paquete incluye</h2>
+      <ul><li>Datos de la colección y sus recuerdos</li><li>Fotografías, audios y personas relacionadas</li><li>Páginas diseñadas y referencias multimedia</li><li>Manifiesto con versión y huellas SHA-256</li></ul>
+    </div>
+  </mat-card>
+</main>

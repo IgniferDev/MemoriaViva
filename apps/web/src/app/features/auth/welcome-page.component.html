@@ -1,0 +1,62 @@
+<main class="welcome-page">
+  <section class="welcome-hero page-width">
+    <div class="hero-copy">
+      <p class="welcome-kicker"><span aria-hidden="true">✦</span> Una biblioteca para las historias de tu vida</p>
+      <h1>Una foto guarda el instante. Una voz, todo lo que significó.</h1>
+      <p class="hero-description">Reúne fotografías, relatos y voces en colecciones privadas. Conserva los detalles, las distintas perspectivas y la historia detrás de cada imagen.</p>
+      <div class="welcome-actions"><a mat-flat-button color="primary" routerLink="/register">Crear mi cuenta</a><a mat-stroked-button routerLink="/login">Ya tengo una cuenta</a></div>
+      <div class="hero-assurances"><span>Privado para tu cuenta</span><span>Fotos, texto y audio</span><span>También sin conexión</span></div>
+    </div>
+    <div class="hero-art" aria-label="Ilustración de dos personas celebrando una boda">
+      <img class="hero-photo" src="/illustrations/wedding-memory.svg" alt="Ilustración genérica de una pareja celebrando su boda" />
+      <div class="hero-note"><span class="sound-mark" aria-hidden="true">◖</span><div><strong>La historia también se escucha</strong><span>Varias voces, un mismo recuerdo</span></div></div>
+      <span class="art-label">Boda de la familia · 1986</span>
+    </div>
+  </section>
+
+  <section class="inspiration-section">
+    <div class="page-width inspiration-grid">
+      <div><p class="section-kicker">La idea que nos mueve</p><h2>Las fotografías muestran cómo se veía. Las voces cuentan cómo se vivió.</h2></div>
+      <div class="inspiration-copy"><p>Con el tiempo, una imagen puede quedarse sin contexto: quién estaba ahí, qué ocurrió antes o qué sintió cada persona. Memoria Viva nace para guardar esas historias junto a la fotografía, con espacio para más de una voz.</p><p>Queremos que recordar sea sencillo: abrir una colección, elegir un momento y volver a escuchar a quienes lo vivieron.</p></div>
+    </div>
+    <div class="page-width value-grid">
+      <article><span aria-hidden="true">▧</span><h3>Un recuerdo, varias fotos</h3><p>Recorre cada imagen completa y conserva sus detalles y distintos ángulos.</p></article>
+      <article><span aria-hidden="true">◖</span><h3>Más de una perspectiva</h3><p>Vincula audios con personas y con la fotografía a la que se refieren.</p></article>
+      <article><span aria-hidden="true">⌂</span><h3>Tuyo y portable</h3><p>Organiza colecciones privadas y guarda una copia para leer sin conexión.</p></article>
+    </div>
+  </section>
+
+  <section class="examples-section page-width">
+    <div class="section-heading"><div><p class="section-kicker">Ideas para empezar</p><h2>Cada historia tiene su propia forma</h2></div><p>Estos ejemplos son ilustraciones genéricas. Tus recuerdos pueden ser familiares, personales o educativos.</p></div>
+    <div class="example-grid">
+      <article class="example-card"><img src="/illustrations/wedding-memory.svg" alt="Ilustración genérica de una boda" /><div><span>Familia</span><h3>La boda de los abuelos</h3><p>Fotos desde varios ángulos, recuerdos de la pareja y anécdotas de la familia.</p></div></article>
+      <article class="example-card"><img src="/illustrations/trip-memory.svg" alt="Ilustración genérica de un viaje entre montañas" /><div><span>Experiencias</span><h3>Aquel viaje juntos</h3><p>Un recorrido en imágenes con las voces que recuerdan cada parada.</p></div></article>
+      <article class="example-card"><img src="/illustrations/graduation-memory.svg" alt="Ilustración genérica de una graduación" /><div><span>Logros</span><h3>El día de la graduación</h3><p>Una fecha importante contada por quien la alcanzó y quienes le acompañaron.</p></div></article>
+    </div>
+  </section>
+
+  <section class="how-section">
+    <div class="page-width">
+      <div class="section-heading"><div><p class="section-kicker">Sin complicaciones</p><h2>De una foto a una historia compartida contigo</h2></div></div>
+      <div class="steps-grid">
+        <article><span>01</span><h3>Crea una colección</h3><p>Elige un nombre para un álbum, una etapa de tu vida o un tema que quieras conservar.</p></article>
+        <article><span>02</span><h3>Añade el recuerdo</h3><p>Escribe el título y la historia, elige fotos y graba o adjunta una o varias narraciones.</p></article>
+        <article><span>03</span><h3>Vuelve a vivirlo</h3><p>Lee la colección, recorre las fotos y escucha cada voz asociada al momento.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq-section page-width">
+    <div class="faq-heading"><p class="section-kicker">Ayuda rápida</p><h2>Preguntas frecuentes</h2><p>Soluciones para los problemas más comunes al empezar.</p></div>
+    <div class="faq-list">
+      <details><summary>No puedo subir una fotografía, ¿qué reviso?</summary><p>Usa JPEG, PNG, WebP o GIF de hasta 25 MB. Si el archivo cumple esos límites, prueba otra vez con una conexión estable y confirma que la API esté activa.</p></details>
+      <details><summary>No puedo iniciar sesión</summary><p>Confirma que el correo esté escrito correctamente y usa la contraseña registrada. Si aún no tienes cuenta, créala desde esta página. En desarrollo local, revisa también que la API y PostgreSQL estén funcionando.</p></details>
+      <details><summary>¿Puedo escuchar mis recuerdos sin internet?</summary><p>Sí. Abre la colección cuando tengas conexión y elige “Guardar para leer sin conexión”. Esa copia queda en el dispositivo donde la guardaste.</p></details>
+      <details><summary>¿Mis colecciones son públicas?</summary><p>No. En esta versión, cada cuenta accede únicamente a sus propias colecciones, recuerdos y personas.</p></details>
+      <details><summary>No se graba mi voz</summary><p>Permite el acceso al micrófono en el navegador. La grabación requiere HTTPS o localhost; también puedes cargar un archivo MP3, M4A, WAV, OGG o WebM de hasta 100 MB.</p></details>
+    </div>
+  </section>
+
+  <section class="closing-cta page-width"><div><p class="section-kicker">Un buen momento para empezar</p><h2>Guarda hoy las historias que mañana querrás volver a escuchar.</h2></div><a mat-flat-button color="primary" routerLink="/register">Crear mi cuenta</a></section>
+  <footer class="welcome-footer page-width"><span>Memoria Viva</span><span>Hecha para conservar lo que una imagen no alcanza a contar.</span><a routerLink="/login">Iniciar sesión</a></footer>
+</main>

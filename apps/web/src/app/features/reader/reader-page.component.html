@@ -1,0 +1,159 @@
+<main class="reader">
+  @if (loading()) {
+    <div class="reader-loading"><mat-spinner diameter="30" /> Preparando la colección…</div>
+  } @else if (error()) {
+    <p>{{ error() }}</p><a mat-button routerLink="/">Volver a la biblioteca</a>
+  } @else if (collection(); as book) {
+    <header class="reader-bar">
+      <a mat-button [routerLink]="['/collections', book.id]">← Colección</a>
+      <div class="reader-heading"><p>{{ book.title }}</p><span>{{ items().length ? index() + 1 : 0 }} / {{ items().length }}</span></div>
+      <div class="reader-actions">
+        @if (current(); as event) {
+          @if (editMode()) {
+            <button mat-flat-button color="primary" type="button" [disabled]="uploading() || recording() || saving() || savingNarrationId() || deletingNarrationId()" (click)="saveChanges()">{{ saving() || savingNarrationId() ? 'Guardando…' : 'Guardar cambios' }}</button>
+          } @else {
+            <button mat-stroked-button type="button" (click)="beginEdit()">Editar recuerdo</button>
+          }
+        }
+        <a mat-flat-button color="primary" [routerLink]="['/events/new']" [queryParams]="{collectionId: book.id}">＋ Recuerdo</a>
+      </div>
+    </header>
+
+    @if (current(); as event) {
+      <article class="story-slide" [class.story-slide--editing]="editMode()">
+        <section class="photo-panel" aria-label="Fotografías del recuerdo">
+          @if (currentPhoto(); as photo) {
+            <div class="photo-stage">
+              <img class="photo-full-image" crossorigin="use-credentials" [src]="assetUrl(photo.asset.id)" [alt]="photo.caption || event.title" style="width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; object-position: center" />
+              @if (photos().length > 1) {
+                <button class="photo-arrow photo-arrow--left" mat-icon-button type="button" aria-label="Fotografía anterior" (click)="movePhoto(-1)">‹</button>
+                <button class="photo-arrow photo-arrow--right" mat-icon-button type="button" aria-label="Fotografía siguiente" (click)="movePhoto(1)">›</button>
+                <span class="photo-counter">{{ photoIndex() + 1 }} / {{ photos().length }}</span>
+              }
+              @if (editMode()) { <button class="photo-delete" mat-button type="button" (click)="deletePhoto(photo)">Quitar foto</button> }
+            </div>
+            @if (photo.caption) { <p class="photo-caption">{{ photo.caption }}</p> }
+            @if (photos().length > 1) {
+              <div class="photo-rail" aria-label="Todas las fotos de este recuerdo">
+                @for (item of photos(); track item.id; let i = $index) {
+                  <button type="button" [class.active]="i === photoIndex()" [attr.aria-label]="'Ver foto ' + (i + 1)" (click)="selectPhoto(i)">
+                    <img crossorigin="use-credentials" [src]="thumbnailUrl(item.asset.id)" [alt]="item.caption || 'Foto ' + (i + 1)" />
+                  </button>
+                }
+              </div>
+            }
+          } @else {
+            <div class="image-placeholder"><span aria-hidden="true">✦</span><p>{{ editMode() ? 'Añade fotografías a este recuerdo' : 'Este recuerdo todavía no tiene fotografías' }}</p></div>
+          }
+        </section>
+
+        <section class="story-content">
+          @if (editMode()) {
+            <p class="eyebrow">Editando recuerdo</p>
+            <label class="edit-field">Título<input [value]="editTitle()" maxlength="200" (input)="editTitle.set($any($event.target).value); markDirty()" /></label>
+            <label class="edit-field">Historia<textarea rows="5" [value]="editDescription()" (input)="editDescription.set($any($event.target).value); markDirty()"></textarea></label>
+            <div class="edit-grid">
+              <label class="edit-field">Fecha<input type="date" [value]="editDate()" (input)="editDate.set($any($event.target).value); markDirty()" /></label>
+              <label class="edit-field">Lugar<input [value]="editLocation()" maxlength="200" (input)="editLocation.set($any($event.target).value); markDirty()" /></label>
+            </div>
+            <mat-form-field appearance="outline" class="people-select">
+              <mat-label>Personas relacionadas</mat-label>
+              <mat-select multiple [value]="selectedPeople()" (selectionChange)="selectedPeople.set($event.value); markDirty()">
+                @for (person of people(); track person.id) { <mat-option [value]="person.id">{{ person.name }}</mat-option> }
+              </mat-select>
+            </mat-form-field>
+            <div class="add-person-row">
+              <input [value]="newPersonName()" placeholder="Añadir persona" maxlength="160" (input)="newPersonName.set($any($event.target).value)" (keydown.enter)="$event.preventDefault(); addPerson()" />
+              <button mat-stroked-button type="button" [disabled]="!newPersonName().trim()" (click)="addPerson()">Guardar persona</button>
+            </div>
+            <div class="edit-media">
+              <div class="edit-media-heading"><strong>Fotografías</strong><label class="file-button">＋ Añadir fotos<input #photosInput type="file" accept="image/*" multiple (change)="uploadPhotos(photosInput)" /></label></div>
+              @if (photos().length > 1) { <p>Las fotos se muestran en carrusel y conservan su encuadre completo.</p> }
+              @if (photos().length > 1) { <div class="photo-order-controls"><button mat-button type="button" (click)="reorderPhoto(-1)" [disabled]="photoIndex() === 0">← Mover antes</button><button mat-button type="button" (click)="reorderPhoto(1)" [disabled]="photoIndex() === photos().length - 1">Mover después →</button></div> }
+              <div class="edit-media-heading"><strong>Narraciones</strong><label class="file-button">＋ Cargar audio<input #audioInput type="file" accept="audio/*,.m4a,.mp3,.wav,.ogg,.webm" multiple (change)="uploadAudios(audioInput)" /></label></div>
+              <label class="edit-field">Título de la grabación<input [value]="narrationTitle()" (input)="narrationTitle.set($any($event.target).value)" /></label>
+              <mat-form-field appearance="outline" class="people-select">
+                <mat-label>Quién narra este audio (opcional)</mat-label>
+                <mat-select [value]="speakerPersonId()" (selectionChange)="speakerPersonId.set($event.value)">
+                  <mat-option value="">Sin asignar</mat-option>
+                  @for (person of people(); track person.id) { <mat-option [value]="person.id">{{ person.name }}</mat-option> }
+                </mat-select>
+              </mat-form-field>
+              @if (photos().length) {
+                <label class="edit-field">Vincular audio a una foto (opcional)
+                  <select [value]="relatedPhotoAssetId()" (change)="relatedPhotoAssetId.set($any($event.target).value)"><option value="">Sin vínculo específico</option>@for (item of photos(); track item.id) { <option [value]="item.asset.id">{{ item.caption || item.asset.originalName }}</option> }</select>
+                </label>
+              }
+              <div class="record-controls">
+                @if (recording()) { <button mat-flat-button color="warn" type="button" (click)="stopRecording()">Detener grabación</button> }
+                @else { <button mat-stroked-button type="button" [disabled]="uploading()" (click)="startRecording()">● Grabar voz</button> }
+                @if (uploading()) { <span>Guardando archivo…</span> }
+              </div>
+              @if (narrations().length) {
+                <div class="saved-narrations">
+                  <strong>Audios del recuerdo</strong>
+                  @for (voice of narrations(); track voice.id) {
+                    <article class="narration-edit">
+                      <label class="edit-field">Título del audio<input [value]="narrationDraft(voice).title" maxlength="200" (input)="setNarrationDraft(voice, 'title', $any($event.target).value)" /></label>
+                      <div class="edit-grid">
+                        <mat-form-field appearance="outline">
+                          <mat-label>Quién narra</mat-label>
+                          <mat-select [value]="narrationDraft(voice).speakerId" (selectionChange)="setNarrationDraft(voice, 'speakerId', $event.value)">
+                            <mat-option value="">Sin asignar</mat-option>
+                            @for (person of people(); track person.id) { <mat-option [value]="person.id">{{ person.name }}</mat-option> }
+                          </mat-select>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Foto relacionada</mat-label>
+                          <mat-select [value]="narrationDraft(voice).relatedPhotoAssetId" (selectionChange)="setNarrationDraft(voice, 'relatedPhotoAssetId', $event.value)">
+                            <mat-option value="">Sin vínculo específico</mat-option>
+                            @for (item of photos(); track item.id) { <mat-option [value]="item.asset.id">{{ item.caption || item.asset.originalName }}</mat-option> }
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                      <label class="edit-field">Transcripción o nota (opcional)<textarea rows="2" [value]="narrationDraft(voice).transcript" (input)="setNarrationDraft(voice, 'transcript', $any($event.target).value)"></textarea></label>
+                      @if (voice.audioAsset) { <audio crossorigin="use-credentials" controls preload="none" [src]="assetUrl(voice.audioAsset.id)"></audio> }
+                      <div class="narration-actions">
+                        <button mat-flat-button color="primary" type="button" [disabled]="savingNarrationId() || !isNarrationDirty(voice)" (click)="saveNarration(voice)">{{ savingNarrationId() === voice.id ? 'Guardando…' : 'Guardar audio' }}</button>
+                        <button mat-button color="warn" type="button" [disabled]="savingNarrationId() || deletingNarrationId() || uploading()" (click)="deleteNarration(voice)">{{ deletingNarrationId() === voice.id ? 'Eliminando…' : 'Eliminar audio' }}</button>
+                      </div>
+                    </article>
+                  }
+                </div>
+              }
+            </div>
+            @if (uploadError()) { <p class="edit-error" role="alert">{{ uploadError() }}</p> }
+          } @else {
+            <p class="story-number">{{ eventDate(event) }}{{ event.locationName ? ' · ' + event.locationName : '' }}</p>
+            <h1>{{ event.title }}</h1>
+            @if (event.people?.length) { <p class="story-people">Con {{ peopleNames(event) }}</p> }
+            @if (event.description) { <p class="story-description">{{ event.description }}</p> }
+            @if (narrations().length) {
+              <div class="voice-list">
+                @for (voice of narrations(); track voice.id) {
+                  @if (voice.audioAsset) {
+                    <div class="voice">
+                      <span>◖ {{ voice.title }}{{ voice.speaker ? ' · ' + voice.speaker.name : '' }}</span>
+                      @if (voice.relatedPhotoAsset) { <button class="voice-photo-link" type="button" (click)="selectPhotoForNarration(voice.relatedPhotoAsset.id)" [attr.aria-label]="'Mostrar foto relacionada con ' + voice.title"><img crossorigin="use-credentials" class="voice-photo" [src]="thumbnailUrl(voice.relatedPhotoAsset.id)" alt="Fotografía relacionada con esta narración" /><span>Ver foto</span></button> }
+                      <audio crossorigin="use-credentials" controls preload="none" [src]="assetUrl(voice.audioAsset.id)"></audio>
+                      @if (voice.transcript) { <p>{{ voice.transcript }}</p> }
+                    </div>
+                  }
+                }
+              </div>
+            }
+          }
+        </section>
+      </article>
+      <footer class="reader-controls">
+        <button mat-stroked-button type="button" [disabled]="index() === 0" (click)="move(-1)">← Recuerdo anterior</button>
+        <div class="progress-dots" aria-label="Progreso">
+          @for (item of items(); track item.eventId; let i = $index) { <button type="button" [class.active]="i === index()" [attr.aria-label]="'Ir al recuerdo ' + (i + 1)" (click)="selectEvent(i)"></button> }
+        </div>
+        <button mat-flat-button color="primary" type="button" [disabled]="index() >= items().length - 1" (click)="move(1)">Siguiente recuerdo →</button>
+      </footer>
+    } @else {
+      <section class="reader-empty"><h1>Esta colección todavía no tiene recuerdos.</h1><a mat-flat-button color="primary" [routerLink]="['/events/new']" [queryParams]="{collectionId: book.id}">Crear primer recuerdo</a></section>
+    }
+  }
+</main>

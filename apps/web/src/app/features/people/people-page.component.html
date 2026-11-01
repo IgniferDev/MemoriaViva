@@ -1,0 +1,44 @@
+<main class="people-page">
+  <a class="back-link" routerLink="/library">← Biblioteca</a>
+
+  <header class="people-heading">
+    <div>
+      <p class="eyebrow">Tu catálogo</p>
+      <h1>Personas</h1>
+      <p class="people-intro">Guarda los nombres de quienes aparecen en tus recuerdos y narraciones para encontrarlos y relacionarlos fácilmente.</p>
+    </div>
+    <div class="people-count" aria-live="polite"><strong>{{ people().length }}</strong><span>{{ people().length === 1 ? 'persona guardada' : 'personas guardadas' }}</span></div>
+  </header>
+
+  @if (error()) { <p class="people-error" role="alert">{{ error() }}</p> }
+
+  <section class="create-panel" aria-labelledby="create-title">
+    <div class="create-copy"><span class="create-icon" aria-hidden="true">＋</span><div><h2 id="create-title">Añadir una persona</h2><p>Podrás seleccionarla al crear o editar un recuerdo.</p></div></div>
+    <form class="person-create" (ngSubmit)="create()">
+      <mat-form-field appearance="outline"><mat-label>Nombre completo</mat-label><input matInput name="newPerson" [ngModel]="newName()" (ngModelChange)="newName.set($event)" maxlength="160" autocomplete="off" placeholder="Por ejemplo, Elena García" /></mat-form-field>
+      <button mat-flat-button color="primary" type="submit" [disabled]="!newName().trim() || !!busyId()">Añadir persona</button>
+    </form>
+  </section>
+
+  <section class="directory" aria-labelledby="directory-title">
+    <div class="directory-heading"><div><h2 id="directory-title">Tu gente</h2><p>Personas relacionadas con tus historias.</p></div></div>
+    @if (!people().length) {
+      <mat-card appearance="outlined" class="empty-state"><span aria-hidden="true">♡</span><div><h3>Aún no has añadido personas</h3><p>Empieza con alguien que quieras recordar. Cuando la relaciones con una historia, su nombre quedará junto a ese recuerdo.</p></div></mat-card>
+    } @else {
+      <div class="people-list">
+        @for (person of people(); track person.id) {
+          <mat-card appearance="outlined" class="person-row">
+            @if (editingId() === person.id) {
+              <span class="person-avatar" aria-hidden="true">{{ initials(person.name) }}</span>
+              <input class="person-edit-input" [value]="editName()" maxlength="160" aria-label="Editar nombre" (input)="editName.set($any($event.target).value)" (keydown.enter)="$event.preventDefault(); saveEdit(person)" />
+              <div class="person-actions"><button mat-button type="button" (click)="cancelEdit()">Cancelar</button><button mat-flat-button color="primary" type="button" [disabled]="!editName().trim() || busyId() === person.id" (click)="saveEdit(person)">Guardar</button></div>
+            } @else {
+              <div class="person-identity"><span class="person-avatar" aria-hidden="true">{{ initials(person.name) }}</span><div><strong>{{ person.name }}</strong><span>En tu catálogo personal</span></div></div>
+              <div class="person-actions"><button mat-button type="button" [disabled]="!!busyId()" (click)="beginEdit(person)">Editar</button><button mat-button color="warn" type="button" [disabled]="!!busyId()" (click)="remove(person)">{{ busyId() === person.id ? 'Borrando…' : 'Borrar' }}</button></div>
+            }
+          </mat-card>
+        }
+      </div>
+    }
+  </section>
+</main>

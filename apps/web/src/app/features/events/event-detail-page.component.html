@@ -1,0 +1,153 @@
+<main class="event-page">
+  @if (loading()) {
+    <div class="loading-state"><mat-spinner diameter="30" /> Abriendo recuerdo…</div>
+  } @else if (error()) {
+    <mat-card appearance="outlined" class="notice-card">
+      <p>{{ error() }}</p>
+      <a mat-button routerLink="/">Volver a la biblioteca</a>
+    </mat-card>
+  } @else if (event(); as current) {
+    <a class="back-link" [routerLink]="current.collectionItems?.length ? ['/collections', current.collectionItems[0].collectionId] : ['/']">
+      ← {{ current.collectionItems?.length ? 'Volver a la colección' : 'Biblioteca' }}
+    </a>
+
+    <header class="event-header">
+      <div>
+        <p class="eyebrow">Recuerdo narrado</p>
+        <h1>{{ current.title }}</h1>
+        <div class="metadata">
+          <span>{{ displayDate() }}</span>
+          @if (current.locationName) {
+            <span>{{ current.locationName }}</span>
+          }
+        </div>
+      </div>
+      <div class="event-actions"><a mat-stroked-button [routerLink]="['/events', current.id, 'edit']">Editar recuerdo</a><button mat-button color="warn" type="button" (click)="deleteEvent()">Eliminar recuerdo</button></div>
+    </header>
+
+    @if (current.photos?.length) {
+      <section class="photo-grid" aria-label="Fotografías del recuerdo">
+        @for (photo of current.photos; track photo.id) {
+          <figure>
+            <img crossorigin="use-credentials" [src]="thumbnailUrl(photo.asset.id)" [alt]="photo.caption || current.title" />
+            @if (photo.caption) {
+              <figcaption>{{ photo.caption }}</figcaption>
+            }
+            <div class="photo-tools">
+              <button mat-button type="button" (click)="editCaption(photo.id, photo.caption)">Pie de foto</button>
+              <button mat-button type="button" [disabled]="$first" (click)="movePhoto($index, -1)" aria-label="Mover foto antes">↑</button>
+              <button mat-button type="button" [disabled]="$last" (click)="movePhoto($index, 1)" aria-label="Mover foto después">↓</button>
+            </div>
+            <button class="remove-media" mat-button type="button" (click)="deletePhoto(photo.id)">Quitar foto</button>
+          </figure>
+        }
+      </section>
+    } @else {
+      <div class="photo-empty">
+        <span aria-hidden="true">✦</span>
+        <p>Aquí podrás reunir las fotografías de este recuerdo.</p>
+      </div>
+    }
+
+    <section class="media-actions" aria-label="Añadir contenido al recuerdo">
+      <div>
+        <h2>Añadir fotografías</h2>
+        <p>JPG, PNG, WebP o GIF. Hasta 25 MB por foto.</p>
+        <label class="upload-button" mat-stroked-button>
+          Elegir fotos
+          <input #photoInput type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple (change)="uploadPhotos(photoInput)" />
+        </label>
+      </div>
+      <div class="audio-composer">
+        <h2>Añadir una voz</h2>
+        <label class="compact-field">Título de la narración
+          <input [value]="narrationTitle()" (input)="narrationTitle.set($any($event.target).value)" maxlength="200" />
+        </label>
+        <label class="compact-field">Quién narra (opcional)
+          <input [value]="speakerName()" (input)="speakerName.set($any($event.target).value)" maxlength="160" />
+        </label>
+        <label class="compact-field">Transcripción (opcional)
+          <textarea [value]="transcript()" (input)="transcript.set($any($event.target).value)" rows="2"></textarea>
+        </label>
+        @if (current.photos?.length) {
+          <label class="compact-field">Vincular a una fotografía (opcional)
+            <select [value]="relatedPhotoAssetId()" (change)="relatedPhotoAssetId.set($any($event.target).value)">
+              <option value="">Sin fotografía específica</option>
+              @for (photo of current.photos; track photo.id) { <option [value]="photo.asset.id">{{ photo.caption || photo.asset.originalName }}</option> }
+            </select>
+          </label>
+        }
+        <div class="audio-actions">
+          <label class="upload-button" mat-stroked-button>
+            Cargar audio
+            <input #audioInput type="file" accept="audio/*,.m4a,.mp3,.wav,.ogg,.webm" (change)="uploadAudio(audioInput)" />
+          </label>
+          @if (recording()) {
+            <button mat-flat-button color="warn" type="button" (click)="stopRecording()">Detener grabación</button>
+          } @else {
+            <button mat-flat-button color="primary" type="button" [disabled]="busy()" (click)="startRecording()">Grabar voz</button>
+          }
+        </div>
+      </div>
+    </section>
+
+    @if (busy()) {
+      <p class="upload-status" aria-live="polite">Guardando contenido…</p>
+    }
+    @if (error()) {
+      <p class="inline-error" role="alert">{{ error() }}</p>
+    }
+
+    <div class="story-layout">
+      <article class="story-copy">
+        <h2>La historia</h2>
+        <p class="description">{{ current.description || 'Aún no se ha escrito la descripción de este recuerdo.' }}</p>
+        @if (current.people?.length) {
+          <div class="people-list">
+            <h3>Personas relacionadas</h3>
+            @for (person of current.people; track person.person.id) {
+                <span>{{ person.person.name }}</span>
+            }
+          </div>
+        }
+      </article>
+
+      <aside class="narrations">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Voces del recuerdo</p>
+            <h2>Narraciones</h2>
+          </div>
+          <span class="narration-count">{{ current.narrations?.length ?? 0 }}</span>
+        </div>
+        @if (current.narrations?.length) {
+          @for (narration of current.narrations; track narration.id; let index = $index) {
+            <mat-card appearance="outlined" class="narration-card">
+              <strong>{{ narration.title }}</strong>
+              @if (narration.speaker) {
+                <span class="speaker">Narrada por {{ narration.speaker.name }}</span>
+              }
+              @if (narration.relatedPhotoAsset) { <span class="speaker">Relacionada con una fotografía del recuerdo</span> }
+              @if (narration.relatedPhotoAsset) { <img crossorigin="use-credentials" class="related-photo" [src]="thumbnailUrl(narration.relatedPhotoAsset.id)" alt="Fotografía relacionada con esta narración" /> }
+              @if (narration.audioAsset) {
+                <audio crossorigin="use-credentials" controls preload="none" [src]="assetUrl(narration.audioAsset.id)">
+                  El navegador no admite la reproducción de audio.
+                </audio>
+              }
+              @if (narration.transcript) {
+                <p class="transcript">{{ narration.transcript }}</p>
+              }
+              <button class="remove-narration" mat-button type="button" (click)="deleteNarration(narration.id)">Quitar narración</button>
+              <div class="narration-order"><button mat-button type="button" [disabled]="index === 0" (click)="moveNarration(index, -1)">↑ Subir</button><button mat-button type="button" [disabled]="index === current.narrations!.length - 1" (click)="moveNarration(index, 1)">↓ Bajar</button></div>
+            </mat-card>
+          }
+        } @else {
+          <mat-card appearance="outlined" class="narration-empty">
+            <p>Las voces de familia también forman parte de esta historia.</p>
+            <span>Añade una grabación o carga un audio existente para conservar distintas perspectivas.</span>
+          </mat-card>
+        }
+      </aside>
+    </div>
+  }
+</main>

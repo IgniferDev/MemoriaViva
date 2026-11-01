@@ -1,0 +1,61 @@
+<main class="form-page">
+  <a class="back-link" routerLink="/">← Biblioteca</a>
+  <mat-card appearance="outlined" class="form-card">
+    <p class="eyebrow">{{ collectionId() ? 'Editar colección' : 'Nueva colección' }}</p>
+    <h1>{{ collectionId() ? 'Ajusta el espacio de esta historia' : '¿Qué historia quieres reunir?' }}</h1>
+    <p class="intro">Elige el tipo de colección. Podrás cambiar su contenido después.</p>
+
+    @if (loading()) {
+      <p class="status">Cargando colección…</p>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <mat-form-field appearance="outline">
+          <mat-label>Nombre</mat-label>
+          <input matInput formControlName="title" maxlength="160" autocomplete="off" />
+          @if (form.controls.title.hasError('required') && form.controls.title.touched) {
+            <mat-error>Escribe un nombre para la colección.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Tipo</mat-label>
+          <mat-select formControlName="kind">
+            <mat-option value="ALBUM">Álbum</mat-option>
+            <mat-option value="TIMELINE">Línea de tiempo</mat-option>
+            <mat-option value="EDUCATIONAL">Colección educativa</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Descripción (opcional)</mat-label>
+          <textarea matInput formControlName="description" rows="4" maxlength="5000"></textarea>
+          <mat-hint>Unas palabras para recordar de qué trata.</mat-hint>
+        </mat-form-field>
+
+        <section class="cover-editor" aria-label="Foto de portada">
+          <div><h2>Foto de portada</h2><p>Personaliza la tarjeta de esta colección en tu biblioteca.</p></div>
+          @if (coverImage(); as image) {
+            <div class="cover-preview"><img crossorigin="use-credentials" [src]="image" alt="Previsualización de la portada de la colección" /></div>
+          } @else {
+            <div class="cover-empty">La colección usará su fondo de color.</div>
+          }
+          <div class="cover-actions">
+            <label class="cover-file-button">{{ coverImage() ? 'Cambiar foto' : 'Elegir foto' }}<input type="file" accept="image/*" (change)="selectCover($any($event.target))" /></label>
+            @if (coverImage()) { <button mat-button type="button" (click)="clearCover()">Quitar portada</button> }
+          </div>
+        </section>
+
+        @if (error()) {
+          <p class="error" role="alert">{{ error() }}</p>
+        }
+
+        <div class="form-actions">
+          <a mat-button routerLink="/">Cancelar</a>
+          <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+            {{ saving() ? 'Guardando…' : 'Guardar colección' }}
+          </button>
+        </div>
+      </form>
+    }
+  </mat-card>
+</main>

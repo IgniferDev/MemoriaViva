@@ -1,0 +1,88 @@
+.form-page {
+  width: min(100% - 36px, 760px);
+  margin: 0 auto;
+  padding: 38px 0 80px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 22px;
+  color: #65584b;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.form-card {
+  padding: clamp(24px, 5vw, 52px);
+  border-color: #e7ded2;
+  background: #fffdf9;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: #78604a;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  color: #332a22;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(32px, 5vw, 46px);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+.intro {
+  margin: 14px 0 30px;
+  color: #766d63;
+  line-height: 1.6;
+}
+
+form {
+  display: grid;
+  gap: 10px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.cover-editor { display: grid; gap: 12px; padding: 16px; border: 1px solid #e7ded2; border-radius: 12px; background: #faf7f2; }
+.cover-editor h2 { margin: 0 0 3px; color: #332a22; font: 400 21px Georgia, serif; }
+.cover-editor p { margin: 0; color: #766d63; font-size: 13px; }
+.cover-preview { height: clamp(150px, 30vw, 240px); overflow: hidden; border-radius: 9px; background: #e9e2d8; }
+.cover-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cover-empty { display: grid; min-height: 120px; place-items: center; border: 1px dashed #cbb9a5; border-radius: 9px; color: #766d63; font-size: 13px; }
+.cover-actions { display: flex; align-items: center; gap: 8px; }
+.cover-file-button { position: relative; display: inline-flex; min-height: 38px; align-items: center; justify-content: center; padding: 0 13px; border: 1px solid #cbb9a5; border-radius: 6px; color: #51483f; font-size: 12px; cursor: pointer; }
+.cover-file-button:hover { background: #f0e8dd; }.cover-file-button input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
+
+.error {
+  margin: 0;
+  color: #a83d32;
+}
+
+.status {
+  color: #766d63;
+}
+
+@media (max-width: 560px) {
+  .form-page { width: min(100% - 22px, 760px); padding-top: 20px; }
+  .form-card { padding: 20px 16px; }
+  .form-actions { align-items: stretch; flex-direction: column-reverse; }
+  .form-actions > * { width: 100%; }
+  .cover-actions { align-items: stretch; flex-direction: column; }
+  .cover-actions > * { width: 100%; }
+}

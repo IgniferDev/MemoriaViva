@@ -1,0 +1,121 @@
+<main class="page-shell">
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Tu biblioteca personal</p>
+      <h1>Recuerdos que merecen ser contados.</h1>
+      <p class="intro">
+        Reúne fotografías, historias y las voces de quienes las vivieron.
+      </p>
+    </div>
+    <a mat-flat-button color="primary" routerLink="/collections/new">
+      Crear colección
+    </a>
+  </section>
+
+  <section class="filters" aria-label="Buscar recuerdos y filtrar colecciones">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Buscar recuerdos</mat-label>
+      <input
+        matInput
+        [formControl]="searchControl"
+        placeholder="Título, historia o persona"
+      />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="type-field">
+      <mat-label>Tipo de colección</mat-label>
+      <mat-select
+        [value]="kindFilter()"
+        (selectionChange)="onFilterChange($event.value)"
+      >
+        <mat-option value="ALL">Todos los tipos</mat-option>
+        <mat-option value="ALBUM">Álbumes</mat-option>
+        <mat-option value="TIMELINE">Líneas de tiempo</mat-option>
+        <mat-option value="EDUCATIONAL">Educativas</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </section>
+
+  @if (hasActiveEventFilters()) {
+    <section class="search-results" aria-live="polite">
+      <h2>Recuerdos encontrados</h2>
+      @if (searchResults().length) {
+        <div class="result-list">
+          @for (event of searchResults(); track event.id) {
+            <a class="result-row" [routerLink]="event.collectionItems?.[0] ? ['/collections', event.collectionItems[0].collectionId, 'read'] : ['/events', event.id]" [queryParams]="event.collectionItems?.[0] ? {eventId: event.id} : null">
+              <span class="result-symbol" aria-hidden="true">✦</span>
+              <span class="result-content">
+                <strong>{{ event.title }}</strong>
+                <span>{{ eventDate(event) }}</span>
+              </span>
+              <span class="result-arrow" aria-hidden="true">→</span>
+            </a>
+          }
+        </div>
+      } @else {
+        <p class="muted">No encontramos recuerdos que coincidan con la búsqueda.</p>
+      }
+    </section>
+  }
+
+  <section class="collection-section" aria-labelledby="collections-title">
+    <div class="section-heading">
+      <div>
+        <h2 id="collections-title">Colecciones</h2>
+        <p class="muted">Álbumes, líneas de tiempo y material educativo.</p>
+      </div>
+      <span class="count">{{ visibleCollections().length }}</span>
+    </div>
+
+    @if (loading()) {
+      <div class="loading-state">
+        <mat-spinner diameter="32" />
+        <span>Cargando tu biblioteca…</span>
+      </div>
+    } @else if (error()) {
+      <mat-card class="notice-card">
+        <p>{{ error() }}</p>
+        <button mat-stroked-button type="button" (click)="loadCollections()">
+          Reintentar
+        </button>
+      </mat-card>
+    } @else if (!visibleCollections().length) {
+      <mat-card appearance="outlined" class="empty-state">
+        <span class="empty-icon" aria-hidden="true">✦</span>
+        <h3>
+          {{ collections().length ? 'No hay colecciones de este tipo' : 'Tu biblioteca empieza aquí' }}
+        </h3>
+        <p>
+          {{ collections().length
+            ? 'Prueba con otro filtro o crea una colección nueva.'
+            : 'Crea un álbum, una línea de tiempo o una colección educativa para comenzar.' }}
+        </p>
+        <a mat-flat-button color="primary" routerLink="/collections/new">
+          Crear primera colección
+        </a>
+      </mat-card>
+    } @else {
+      <div class="collection-grid">
+        @for (collection of visibleCollections(); track collection.id) {
+          <a
+            class="collection-card"
+            [routerLink]="['/collections', collection.id]"
+            [attr.aria-label]="collection.title + ', ' + (collection._count?.items ?? 0) + ' recuerdos'"
+          >
+            <div class="collection-cover" [attr.data-kind]="collection.kind">
+              @if (collection.coverAsset) { <img crossorigin="use-credentials" class="collection-cover-image" [src]="coverUrl(collection.coverAsset.id)" alt="" /> }
+              <span class="cover-type">{{ collectionType(collection.kind) }}</span>
+            </div>
+            <div class="collection-info">
+              <h3>{{ collection.title }}</h3>
+              <p>{{ collection.description || 'Una historia en construcción.' }}</p>
+              <div class="collection-meta">
+                <span>{{ collection._count?.items ?? 0 }} recuerdos</span>
+                <span>Actualizada {{ collection.updatedAt | date: 'd MMM y' }}</span>
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+    }
+  </section>
+</main>

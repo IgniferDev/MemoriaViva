@@ -1,0 +1,23 @@
+<mat-toolbar class="topbar">
+  <a class="brand" routerLink="/" aria-label="Memoria Viva, ir a biblioteca">Memoria Viva</a>
+  <span class="toolbar-spacer"></span>
+  @if (auth.currentUser()) {
+    <nav class="desktop-nav" aria-label="Navegación principal"><a mat-button routerLink="/people">Personas</a><a mat-button class="portability-link" routerLink="/portability">Importar .memoria</a></nav>
+    <button mat-button class="mobile-menu" type="button" [matMenuTriggerFor]="userMenu">Más ▾</button>
+    <span class="connection" [class.connection--online]="connection() === 'connected'">
+      <span class="connection-dot" aria-hidden="true"></span>
+      @if (connection() === 'checking') { Conectando } @else if (connection() === 'connected') { En línea } @else { Sin conexión }
+    </span>
+    <span class="user-name">{{ auth.currentUser()?.firstName }}</span>
+    <button mat-button type="button" (click)="logout()">Salir</button>
+  } @else {
+    <a mat-button routerLink="/login">Iniciar sesión</a>
+  }
+</mat-toolbar>
+
+<mat-menu #userMenu="matMenu">
+  <a mat-menu-item routerLink="/people">Personas</a>
+  <a mat-menu-item routerLink="/portability">Importar .memoria</a>
+</mat-menu>
+
+<router-outlet />

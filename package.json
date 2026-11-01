@@ -1,0 +1,28 @@
+{
+  "name": "memoria-viva-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev --workspace @memoria-viva/api",
+    "dev:web": "npm run start --workspace @memoria-viva/web",
+    "start:web:production": "npm run start:production --workspace @memoria-viva/web",
+    "build:api": "npm run build --workspace @memoria-viva/api",
+    "build:web": "npm run build --workspace @memoria-viva/web",
+    "db:generate": "npm run db:generate --workspace @memoria-viva/api",
+    "db:migrate:dev": "npm run db:migrate:dev --workspace @memoria-viva/api",
+    "db:migrate:deploy": "npm run db:migrate:deploy --workspace @memoria-viva/api",
+    "db:studio": "npm run db:studio --workspace @memoria-viva/api"
+  },
+  "allowScripts": {
+    "prisma@7.10.1": true,
+    "@prisma/engines@7.10.1": true,
+    "esbuild@0.28.2": true,
+    "@parcel/watcher@2.6.0": true,
+    "lmdb@3.5.6": true,
+    "msgpackr-extract@3.0.4": true
+  }
+}
