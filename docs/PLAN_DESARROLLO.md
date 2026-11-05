@@ -156,13 +156,13 @@ El exportador crea ZIP sin compresión para no reprocesar archivos grandes. El i
 |---|---|---|
 | S0 — Base y cuenta | Compose, PostgreSQL, Prisma, Nest, registro/login y aislamiento por usuario | Desarrollo local y biblioteca privada operativos |
 | S1 — Colecciones | Biblioteca, formulario, portada, detalle y orden | Colección navegable con imagen opcional |
-| S2 — Recuerdos | Alta conjunta, vista previa de fotos y catálogo de personas editable | Alta unificada |
-| S3 — Lectura | Carrusel, audio editable, navegación estable y guardar/salir de edición | Recuerdo legible y adaptable |
+| S2 — Recuerdos | Crear desde el lector, vista previa de fotos y catálogo de personas editable | Alta unificada en la misma vista de lectura |
+| S3 — Lectura | Carrusel, visor a pantalla completa, audio editable, navegación estable y guardar/salir de edición | Recuerdo legible y adaptable |
 | S4 — Offline | Descarga de datos, portada y medios; limpieza al cerrar sesión | Lectura sin red y datos privados retirados al salir |
 | S5 — Portabilidad | `.memoria` V2 con portada, compatibilidad V1 y pulido responsive | Import/export recuperable |
 
 ## 9. Verificación y trabajo posterior
 
-Antes de declarar V1 lista, recorrer manualmente la creación y edición de recuerdo, varias fotos, varias voces, PWA offline, retirar copia, exportar e importar. La compilación se verifica con `npm run build:api` y `npm run build:web`.
+Antes de declarar V1 lista, recorrer manualmente la creación y edición de recuerdo, varias fotos, el visor a pantalla completa y sus flechas/cierre, varias voces, PWA offline, retirar copia, exportar e importar. La compilación se verifica con `npm run build:api` y `npm run build:web`.
 
 Quedan fuera de este plan activo: AWS, colaboración, editor de páginas, IA, transcripción automática y APK Capacitor. Se considerarán después de validar V1 con recuerdos reales.

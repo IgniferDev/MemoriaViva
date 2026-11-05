@@ -28,9 +28,10 @@
           @if (readerPhoto(); as photo) {
             <div class="photo-stage">
               <img class="photo-full-image" [attr.crossorigin]="photo.persisted ? 'use-credentials' : null" [src]="photo.src" [alt]="photo.alt || event.title" style="width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; object-position: center" />
+              <button class="photo-expand" mat-icon-button type="button" aria-label="Ver fotografía a pantalla completa" title="Ver a pantalla completa" (click)="openPhotoFullscreen()"><svg class="photo-control-icon photo-control-icon--expand" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4" /></svg></button>
               @if (readerPhotos().length > 1) {
-                <button class="photo-arrow photo-arrow--left" mat-icon-button type="button" aria-label="Fotografía anterior" (click)="movePhoto(-1)">‹</button>
-                <button class="photo-arrow photo-arrow--right" mat-icon-button type="button" aria-label="Fotografía siguiente" (click)="movePhoto(1)">›</button>
+                <button class="photo-arrow photo-arrow--left" mat-icon-button type="button" aria-label="Fotografía anterior" (click)="movePhoto(-1)"><svg class="photo-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m15 6-6 6 6 6" /></svg></button>
+                <button class="photo-arrow photo-arrow--right" mat-icon-button type="button" aria-label="Fotografía siguiente" (click)="movePhoto(1)"><svg class="photo-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg></button>
                 <span class="photo-counter">{{ photoIndex() + 1 }} / {{ readerPhotos().length }}</span>
               }
               @if (editMode() && photo.persisted) { <button class="photo-delete" mat-button type="button" (click)="deletePhoto(photo.persisted)">Quitar foto</button> }
@@ -174,6 +175,19 @@
       </footer> }
     } @else {
       <section class="reader-empty"><h1>Esta colección todavía no tiene recuerdos.</h1><button mat-flat-button color="primary" type="button" (click)="beginCreate()">Crear primer recuerdo</button></section>
+    }
+  }
+  @if (fullscreenOpen()) {
+    @if (readerPhoto(); as photo) {
+      <div class="photo-lightbox" role="dialog" aria-modal="true" aria-label="Fotografía a pantalla completa" tabindex="0" (keydown)="handleFullscreenKeydown($event)" (click)="closePhotoFullscreen()">
+        <button class="photo-lightbox__close" type="button" aria-label="Cerrar fotografía" (click)="closePhotoFullscreen(); $event.stopPropagation()"><svg class="photo-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m7 7 10 10M17 7 7 17" /></svg></button>
+        @if (readerPhotos().length > 1) {
+          <button class="photo-lightbox__nav photo-lightbox__nav--left" type="button" aria-label="Fotografía anterior" (click)="movePhoto(-1); $event.stopPropagation()"><svg class="photo-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m15 6-6 6 6 6" /></svg></button>
+          <button class="photo-lightbox__nav photo-lightbox__nav--right" type="button" aria-label="Fotografía siguiente" (click)="movePhoto(1); $event.stopPropagation()"><svg class="photo-control-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg></button>
+          <span class="photo-lightbox__counter">{{ photoIndex() + 1 }} / {{ readerPhotos().length }}</span>
+        }
+        <img class="photo-lightbox__image" [attr.crossorigin]="photo.persisted ? 'use-credentials' : null" [src]="photo.src" [alt]="photo.alt" (click)="$event.stopPropagation()" />
+      </div>
     }
   }
 </main>

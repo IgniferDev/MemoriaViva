@@ -5,6 +5,8 @@ Memoria Viva es una biblioteca personal de colecciones y recuerdos narrados. Cad
 ## Cambios recientes
 
 - **Lectura sin recorte:** el visor usa el archivo original de `/content`, conserva el tamaño intrínseco de la imagen y la limita al marco con `contain` en escritorio y móvil. Los carriles de miniaturas y la foto relacionada con cada audio también usan `contain`; las tarjetas de colección y portadas conservan su recorte decorativo.
+- **Visor a pantalla completa:** el control de ampliar abre una capa oscura con la foto completa y navegación por flechas. Los controles usan SVG centrado, cierran con Escape, el botón de cierre o al pulsar el fondo.
+- **Creación en el lector:** alta, lectura y edición comparten la pantalla del recuerdo. La vista previa muestra las fotos completas antes de guardar; una carga fallida se puede reintentar desde el mismo lector.
 - **Personas:** `/people` tiene márgenes, contador de registros, formulario de alta y tarjetas responsivas, con edición y eliminación conservadas.
 - **Inicio:** `/welcome` explica el propósito del producto, muestra tres ilustraciones SVG locales de ejemplo, describe los pasos iniciales y resuelve preguntas frecuentes sobre fotos, acceso, micrófono y lectura offline.
 - **Narraciones:** el alta permite dar título a cada audio, asignar una persona y relacionarlo con una foto; la lectura deja editar metadata, cambiar el vínculo, guardar cambios o eliminar el audio.
@@ -47,20 +49,20 @@ En **Crear colección**, escribe un título, una descripción opcional y elige �
 
 ### Crear un recuerdo
 
-Desde la colección, pulsa **Añadir recuerdo**. En el mismo formulario puedes completar:
+Desde la colección, pulsa **Añadir recuerdo**. Se abrirá el lector en modo **Nuevo recuerdo**. En esa misma vista puedes completar:
 
 - Título obligatorio e historia opcional.
 - Una fecha y un lugar opcionales.
 - Personas relacionadas. Selecciona personas guardadas o escribe un nombre y pulsa **Guardar persona**; la nueva persona se selecciona automáticamente.
 - Varias fotografías y varias narraciones. Puedes elegir archivos o grabar voz desde el navegador.
 
-Pulsa **Guardar recuerdo** una sola vez. La aplicación guarda el recuerdo y adjunta los archivos seleccionados; si algún archivo falla, el formulario conserva los que no se subieron para que puedas reintentarlo.
+Pulsa **Guardar recuerdo**. La vista previa de la izquierda muestra las fotografías completas y permite recorrerlas; a la derecha están los datos y las narraciones. Si falla la carga de algún archivo, permanece en la pantalla para reintentar con **Completar recuerdo**.
 
 Las fotografías admiten JPEG, PNG, WebP y GIF hasta 25 MB por archivo. Los audios admiten MP3, M4A, WAV, OGG y WebM hasta 100 MB. Grabar voz requiere permiso del micrófono y abrir la aplicación en `localhost` o HTTPS.
 
 ### Leer y editar
 
-Pulsa **Leer colección** o selecciona una tarjeta de recuerdo. Usa las flechas o miniaturas para cambiar de foto; el carrusel muestra cada imagen completa. Los controles inferior anterior/siguiente cambian de recuerdo y conservan su posición entre historias. El editor de personas permite cambiar nombres o borrarlas sin eliminar recuerdos ni narraciones.
+Pulsa **Leer colección** o selecciona una tarjeta de recuerdo. Usa las flechas o miniaturas para cambiar de foto; el carrusel muestra cada imagen completa. El botón **⛶** en la esquina de la foto abre el visor a pantalla completa. Allí puedes seguir navegando con las flechas, cerrar con **Escape**, el botón × o pulsar el fondo. Los controles inferior anterior/siguiente cambian de recuerdo y conservan su posición entre historias. El editor de personas permite cambiar nombres o borrarlas sin eliminar recuerdos ni narraciones.
 
 **Editar recuerdo** abre la edición dentro de la misma lectura. Puedes actualizar título, historia, fecha, lugar y personas; añadir o quitar fotos y narraciones; editar el título, la persona y la foto relacionada de cada audio; y cambiar el orden de las fotos. Pulsa **Guardar cambios** una vez para persistir los cambios de texto y audio y regresar a la lectura. Las cargas y eliminaciones de medios se aplican al completarse.
 
@@ -306,7 +308,7 @@ Para probar desde un teléfono conectado a la misma red, el servidor Angular deb
 2. **Biblioteca:** `library-page` carga `GET /collections`. El usuario crea o abre una colección. La API filtra por `ownerId` de la cookie, no por un identificador enviado por la interfaz.
 3. **Alta de recuerdo:** desde la colección o su lector, el botón **Añadir recuerdo** abre `/collections/:id/read?create=true`. `reader-page.component.ts/html` cambia a modo de creación dentro del mismo marco de lectura. El área izquierda muestra fotos seleccionadas completas y en carrusel; el área derecha reúne título, historia, fecha, lugar, personas y audios. El flujo no abre una pantalla de formulario separada.
 4. **Guardado de medios:** al pulsar **Guardar recuerdo**, el lector crea primero el recuerdo (`POST /events`) para obtener su UUID. Después sube fotos (`POST /events/:eventId/photos`) y conserva el mapa entre IDs de vista previa y `MediaAsset.id`. Finalmente sube audios (`POST /events/:eventId/narrations`) con el identificador de la foto relacionada. Si un archivo falla, el recuerdo creado y los archivos pendientes se mantienen en la misma vista para reintentar con **Completar recuerdo**. Cuando todo termina, el lector cambia a modo lectura y selecciona el recuerdo nuevo.
-5. **Lectura:** `reader-page.component.ts/html` obtiene la colección con sus recuerdos, navega entre eventos y fotos y reproduce narraciones. El marco grande usa el original `/media/assets/:id/content`; carrusel y fotos pequeñas usan miniaturas solo como vistas auxiliares. Una miniatura vinculada a una narración selecciona esa foto en el marco grande.
+5. **Lectura:** `reader-page.component.ts/html` obtiene la colección con sus recuerdos, navega entre eventos y fotos y reproduce narraciones. El marco grande usa el original `/media/assets/:id/content`; carrusel y fotos pequeñas usan miniaturas solo como vistas auxiliares. Una miniatura vinculada a una narración selecciona esa foto en el marco grande. El botón de ampliar abre un visor oscuro a pantalla completa, conserva el encuadre completo, permite navegar con flechas y cerrar con Escape o el botón de cierre.
 6. **Edición:** desde el lector, **Editar recuerdo** cambia al modo de edición de esa misma historia. Título, historia, fecha, lugar y personas se actualizan con `PATCH /events/:id`. Cada narración existente se modifica con `PATCH /events/:eventId/narrations/:narrationId`, con título, persona, transcripción y foto relacionada. **Guardar cambios** vuelve a lectura. Las subidas y eliminaciones de medios se aplican al terminar la llamada correspondiente.
 7. **Personas:** `people-page.component` mantiene el catálogo por cuenta con `GET/POST/PATCH/DELETE /people`. Borrar una persona elimina sus relaciones; conserva el recuerdo y el audio.
 

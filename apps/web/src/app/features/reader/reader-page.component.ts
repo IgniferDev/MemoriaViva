@@ -30,6 +30,7 @@ export class ReaderPageComponent implements OnDestroy {
   readonly people = signal<Person[]>([]);
   readonly index = signal(0);
   readonly photoIndex = signal(0);
+  readonly fullscreenOpen = signal(false);
   readonly createMode = signal(false);
   readonly editMode = signal(false);
   readonly dirty = signal(false);
@@ -88,6 +89,7 @@ export class ReaderPageComponent implements OnDestroy {
   private recorder?: MediaRecorder;
   private audioChunks: BlobPart[] = [];
   private previousIndex = 0;
+  private fullscreenTrigger?: HTMLElement;
   readonly recording = signal(false);
 
   ngOnDestroy(): void {
@@ -137,6 +139,24 @@ export class ReaderPageComponent implements OnDestroy {
 
   movePhoto(delta: -1 | 1): void {
     this.photoIndex.update((index) => Math.max(0, Math.min(this.readerPhotos().length - 1, index + delta)));
+  }
+
+  openPhotoFullscreen(): void {
+    if (!this.readerPhoto()) return;
+    this.fullscreenTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
+    this.fullscreenOpen.set(true);
+    requestAnimationFrame(() => document.querySelector<HTMLElement>('.photo-lightbox')?.focus());
+  }
+
+  closePhotoFullscreen(): void {
+    this.fullscreenOpen.set(false);
+    requestAnimationFrame(() => this.fullscreenTrigger?.focus());
+  }
+
+  handleFullscreenKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') { event.preventDefault(); this.closePhotoFullscreen(); }
+    else if (event.key === 'ArrowLeft' && this.readerPhotos().length > 1) { event.preventDefault(); this.movePhoto(-1); }
+    else if (event.key === 'ArrowRight' && this.readerPhotos().length > 1) { event.preventDefault(); this.movePhoto(1); }
   }
 
   reorderPhoto(delta: -1 | 1): void {

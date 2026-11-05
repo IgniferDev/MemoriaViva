@@ -7,7 +7,7 @@
 
 Aplicación personal y responsiva para navegador de escritorio, tablet y teléfono. La PWA puede instalarse y guardar colecciones para lectura offline. Angular consume una API NestJS; PostgreSQL conserva metadatos y los medios se guardan en disco local.
 
-Cada usuario registra una cuenta y accede con correo y contraseña. Sus colecciones, recuerdos, personas y medios quedan aislados de otras cuentas. Un recuerdo se crea dentro de una colección y contiene título, historia/descripción opcional, una fecha opcional, lugar opcional, personas relacionadas, cero o más fotos y cero o más narraciones. Los archivos se adjuntan en el mismo formulario que los datos. En lectura, varias fotos se recorren con carrusel de una foto completa por vez. La edición se abre dentro del lector; **Guardar cambios** persiste los textos y ajustes de cada narración y regresa a la lectura.
+Cada usuario registra una cuenta y accede con correo y contraseña. Sus colecciones, recuerdos, personas y medios quedan aislados de otras cuentas. Un recuerdo se crea dentro de una colección y contiene título, historia/descripción opcional, una fecha opcional, lugar opcional, personas relacionadas, cero o más fotos y cero o más narraciones. La creación se inicia en el lector: la vista de edición muestra una previsualización del recuerdo y adjunta sus fotos y voces antes de cambiar a modo lectura. En lectura, varias fotos se recorren con carrusel de una foto completa por vez. La edición se abre dentro del lector; **Guardar cambios** persiste los textos y ajustes de cada narración y regresa a la lectura.
 
 ### Reglas cerradas
 
@@ -18,6 +18,7 @@ Cada usuario registra una cuenta y accede con correo y contraseña. Sus coleccio
 - El lugar es texto libre. No se capturan coordenadas.
 - Categorías y etiquetas no aparecen en la interfaz ni se requieren para buscar.
 - La foto de lectura conserva su encuadre con `object-fit: contain`; no se agrupan varias fotos en un collage.
+- El botón de ampliar abre un visor oscuro a pantalla completa. Mantiene la foto completa y permite cambiar de imagen con flechas; Escape, el control de cierre o el fondo cierran el visor.
 - Cada colección admite una foto de portada opcional, incluida en la copia offline y en `.memoria`.
 - La copia offline pertenece al almacenamiento del navegador/dispositivo. `.memoria` es un archivo portátil que el usuario puede guardar o trasladar; son acciones diferentes. Al cerrar sesión se eliminan los datos privados cacheados en ese navegador.
 - Offline es de lectura; crear y editar requiere conexión con la API.
@@ -39,7 +40,7 @@ Cada usuario registra una cuenta y accede con correo y contraseña. Sus coleccio
 11. Buscar recuerdos por texto en título, historia y personas; filtrar colecciones por tipo.
 12. Descargar una colección al navegador y leer sus datos y medios sin red; ver progreso y retirar la copia local.
 13. Exportar/importar `.memoria` como ZIP con datos, portada, medios y hash SHA-256. La importación crea una colección nueva.
-14. PWA instalable, tema claro/oscuro y diseño responsive para escritorio, tablet y móviles.
+14. PWA instalable con tema claro y diseño responsive para escritorio, tablet y móviles.
 
 ## 3. Fuera del MVP
 
@@ -60,7 +61,7 @@ Cada usuario registra una cuenta y accede con correo y contraseña. Sus coleccio
 | P0 | MV-01 | Base local y API | Compose, Prisma, PostgreSQL y comprobación de salud operativos |
 | P0 | MV-02 | Cuenta y aislamiento | Registro, inicio/cierre de sesión y datos propios por usuario |
 | P0 | MV-03 | Biblioteca y colecciones | Crear, editar, leer y eliminar colección; acceso a recuerdos y portada opcional |
-| P0 | MV-04 | Formulario único de recuerdo | Datos, personas, vista previa de fotos y medios antes del guardado inicial |
+| P0 | MV-04 | Creación integrada en el lector | Datos, personas, vista previa de fotos y medios en la misma vista de lectura |
 | P0 | MV-05 | Personas | Añadir, editar y borrar personas sin eliminar historias ni audios |
 | P0 | MV-06 | Medios | Validar, almacenar y asociar fotos/audios a su recuerdo |
 | P0 | MV-07 | Lectura y edición in situ | Leer historia/voz; entrar y salir de edición sin abrir otra ficha |
@@ -84,14 +85,14 @@ Cada usuario registra una cuenta y accede con correo y contraseña. Sus coleccio
 
 ### E2 — Recuerdo y personas
 
-- **HU-04 (P0):** Como usuario, quiero guardar título, historia, fecha y lugar en un formulario breve. **Aceptación:** sólo el título es obligatorio; fecha y lugar son campos simples.
+- **HU-04 (P0):** Como usuario, quiero guardar título, historia, fecha y lugar en el modo de creación del lector. **Aceptación:** sólo el título es obligatorio; fecha y lugar son campos simples.
 - **HU-05 (P0):** Como usuario, quiero crear, editar y borrar personas guardadas. **Aceptación:** al borrar, se quitan sus vínculos y se conservan recuerdos y narraciones.
 - **HU-06 (P0):** Como usuario, quiero previsualizar fotos, cargar audios o grabar una voz antes de guardar. **Aceptación:** los archivos se adjuntan al recuerdo recién creado; los fallos permiten reintentar los archivos pendientes.
 
 ### E3 — Lectura y edición
 
 - **HU-07 (P0):** Como lector, quiero recorrer recuerdos y escuchar sus narraciones. **Aceptación:** muestra título, fecha, lugar, personas, historia y controles de audio.
-- **HU-08 (P0):** Como lector, quiero recorrer fotos de un mismo recuerdo una por una. **Aceptación:** controles y miniaturas cambian la foto y no recortan su encuadre.
+- **HU-08 (P0):** Como lector, quiero recorrer fotos de un mismo recuerdo una por una y ampliar la actual. **Aceptación:** controles y miniaturas cambian la foto sin recortarla; el visor a pantalla completa conserva el encuadre y permite navegar con flechas.
 - **HU-09 (P0):** Como usuario, quiero alternar entre leer y editar en la misma pantalla. **Aceptación:** editar datos y medios no requiere volver a abrir otra pantalla.
 
 ### E4 — Búsqueda y continuidad
@@ -123,7 +124,7 @@ Inicio /welcome
 ├── Buscar recuerdos
 ├── Crear colección
 ├── Colección /:id
-│   ├── Añadir recuerdo
+│   ├── Añadir recuerdo → lector en modo creación
 │   ├── Leer colección
 │   │   ├── Recuerdo anterior / siguiente
 │   │   ├── Carrusel de fotos
@@ -153,19 +154,16 @@ Inicio /welcome
 └───────────────────────────────────────────────────────────────────┘
 ```
 
-### Crear recuerdo
+### Lector — modo crear recuerdo
 
 ```text
-┌ ← Volver a la colección ───────────────────────────────────────────┐
-│ Nuevo recuerdo                                                    │
-│ Título [_______________________________________________________] │
-│ Historia [_____________________________________________________] │
-│ Fecha [__________]   Lugar [___________________________________] │
-│ Personas [ elegir ▾ ]    Añadir persona [__________] [Guardar]   │
-│ Fotografías [ + Añadir fotos ]                                     │
-│ [miniatura foto-a.jpg] [miniatura foto-b.jpg]                       │
-│ Narraciones [ + Cargar audio ] [ Grabar voz ]  voz.webm            │
-│                                      [Cancelar] [Guardar recuerdo]│
+┌ ← Colección    Nuevo recuerdo · Vista previa     [Cancelar] [Guardar] ┐
+│ ┌────────────────────────────┐  Título [___________________________] │
+│ │     foto seleccionada       │  Historia [_________________________] │
+│ │       ‹       ›       [⛶]   │  Fecha [________] Lugar [___________] │
+│ └────────────────────────────┘  Personas [_________________________] │
+│ [foto 1] [foto 2] [+ Añadir]     Narraciones [Cargar audio] [Grabar]   │
+│                                   [título] [persona] [foto relacionada]│
 └───────────────────────────────────────────────────────────────────┘
 ```
 
@@ -175,7 +173,7 @@ Inicio /welcome
 ┌ ← Colección   Álbum familiar · 1 / 3       [Editar recuerdo] [+] ┐
 │ ┌────────────────────────────┐   14 feb 1968 · Guadalajara       │
 │ │      foto completa          │   Boda de mis abuelos             │
-│ │     ‹          1 / 3    ›   │   Con Ana y Luis                   │
+│ │      ‹   1 / 3   › [⛶]      │   Con Ana y Luis                   │
 │ └────────────────────────────┘   La historia…                      │
 │ [foto 1] [foto 2] [foto 3]       ◖ Voz de la novia [▶ audio]       │
 │ [← Recuerdo anterior]       [• • ○]       [Siguiente recuerdo →]  │
@@ -188,7 +186,7 @@ Inicio /welcome
 flowchart TD
     A[Inicio, registro o inicio de sesión] --> B[Crear o abrir colección]
     B --> C[Añadir recuerdo]
-    C --> D[Completar título e historia]
+    C --> D[Lector en modo creación: completar título e historia]
     D --> E[Elegir fecha, lugar y personas]
     E --> F[Seleccionar fotos y audios o grabar voz]
     F --> G[Guardar recuerdo y archivos]
@@ -210,18 +208,19 @@ flowchart TD
 |---|---|---|
 | S0 — Base y cuenta | Monorepo, Docker PostgreSQL, Nest, Prisma, registro/inicio y aislamiento por usuario | Arranque local y cuenta privada operativos |
 | S1 — Colecciones | Biblioteca, tipos de colección, portada y detalle | Crear, abrir y editar colecciones con portada |
-| S2 — Recuerdo único | Formulario corto, vista previa de fotos, personas editables y adjuntos iniciales | Crear un recuerdo completo sin segunda visita de carga |
-| S3 — Lector | Carrusel, narraciones, navegación estable, tema oscuro y edición in situ | Leer y editar en escritorio, tablet y móvil |
+| S2 — Recuerdo único | Crear desde el lector, vista previa de fotos, personas editables y adjuntos iniciales | Crear un recuerdo completo sin cambiar de pantalla |
+| S3 — Lector | Carrusel, visor a pantalla completa, narraciones, navegación estable y edición in situ | Leer y editar en escritorio, tablet y móvil |
 | S4 — Offline | Descarga, progreso, caché de medios y limpieza al cerrar sesión | Colección descargada abre sin conexión |
 | S5 — Portabilidad/cierre | `.memoria` V2 con portada, compatibilidad V1, accesibilidad y acabado | Exportar e importar fotos, voces, portada y personas |
 
 ## 11. Aceptación de V1.0
 
 - El usuario crea una colección y desde ella un recuerdo con datos, varias fotos y varias voces en un flujo.
-- Puede crear personas desde el formulario y seleccionarlas sin rol.
+- Puede crear personas desde el lector y seleccionarlas sin rol.
 - Cada usuario inicia sesión y sólo accede a sus datos; puede administrar su catálogo de personas.
 - Las colecciones pueden usar una portada que se mantiene en offline y en archivos `.memoria`.
 - Las fotos se muestran individualmente con su encuadre completo.
+- El visor a pantalla completa ofrece navegación entre fotos sin recortarlas.
 - El usuario alterna lectura y edición del recuerdo dentro de la pantalla del lector.
 - La colección se puede descargar para leer offline y exportar en un `.memoria` portable.
 - La interfaz no muestra editor de páginas, categorías, etiquetas, precisión de fecha ni coordenadas.
