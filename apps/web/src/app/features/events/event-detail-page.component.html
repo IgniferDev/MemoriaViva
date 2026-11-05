@@ -22,7 +22,7 @@
           }
         </div>
       </div>
-      <div class="event-actions"><a mat-stroked-button [routerLink]="['/events', current.id, 'edit']">Editar recuerdo</a><button mat-button color="warn" type="button" (click)="deleteEvent()">Eliminar recuerdo</button></div>
+      <div class="event-actions">@if (current.collectionItems?.[0]; as membership) { <a mat-stroked-button [routerLink]="['/collections', membership.collectionId, 'read']" [queryParams]="{eventId: current.id}">Leer o editar recuerdo</a> }<button mat-button color="warn" type="button" (click)="deleteEvent()">Eliminar recuerdo</button></div>
     </header>
 
     @if (current.photos?.length) {

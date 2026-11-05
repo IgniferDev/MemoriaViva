@@ -111,7 +111,7 @@ PostgreSQL conserva metadatos y relaciones. Incluye `var/uploads/` y la base de 
 | `/collections/:id` | Recuerdos, acciones y estado offline |
 | `/collections/:id/edit` | Editar datos de colección |
 | `/collections/:id/read` | Leer y editar recuerdos en contexto |
-| `/events/new?collectionId=:id` | Crear un recuerdo con sus archivos |
+| `/collections/:id/read?create=true` | Crear un recuerdo en el lector de esa colección |
 | `/portability` | Importar `.memoria` |
 
 ## API REST principal
@@ -304,10 +304,10 @@ Para probar desde un teléfono conectado a la misma red, el servidor Angular deb
 
 1. **Sesión:** `welcome-page.component` enlaza a registro/login. `AuthService` llama a `MemoriaApiService`; NestJS emite la cookie HTTP-only `memoria_viva_session`, válida siete días. `credentials.interceptor.ts` envía credenciales en cada request. `authGuard` consulta `/auth/me` para rutas protegidas.
 2. **Biblioteca:** `library-page` carga `GET /collections`. El usuario crea o abre una colección. La API filtra por `ownerId` de la cookie, no por un identificador enviado por la interfaz.
-3. **Alta de recuerdo:** `event-form-page.component.ts/html` reúne el título, historia, fecha, lugar, personas, fotos y audios. Las fotos tienen vista previa local. Cada audio pendiente contiene título, persona y vínculo a una foto seleccionada.
-4. **Guardado de medios:** la interfaz crea primero el recuerdo (`POST /events`) para obtener su UUID. Luego sube fotos (`POST /events/:eventId/photos`) y guarda el mapa entre foto local y `MediaAsset.id`. Al final sube audios (`POST /events/:eventId/narrations`) con ese identificador para guardar el vínculo audio-foto. Un archivo fallido queda pendiente en el formulario para reintentar.
+3. **Alta de recuerdo:** desde la colección o su lector, el botón **Añadir recuerdo** abre `/collections/:id/read?create=true`. `reader-page.component.ts/html` cambia a modo de creación dentro del mismo marco de lectura. El área izquierda muestra fotos seleccionadas completas y en carrusel; el área derecha reúne título, historia, fecha, lugar, personas y audios. El flujo no abre una pantalla de formulario separada.
+4. **Guardado de medios:** al pulsar **Guardar recuerdo**, el lector crea primero el recuerdo (`POST /events`) para obtener su UUID. Después sube fotos (`POST /events/:eventId/photos`) y conserva el mapa entre IDs de vista previa y `MediaAsset.id`. Finalmente sube audios (`POST /events/:eventId/narrations`) con el identificador de la foto relacionada. Si un archivo falla, el recuerdo creado y los archivos pendientes se mantienen en la misma vista para reintentar con **Completar recuerdo**. Cuando todo termina, el lector cambia a modo lectura y selecciona el recuerdo nuevo.
 5. **Lectura:** `reader-page.component.ts/html` obtiene la colección con sus recuerdos, navega entre eventos y fotos y reproduce narraciones. El marco grande usa el original `/media/assets/:id/content`; carrusel y fotos pequeñas usan miniaturas solo como vistas auxiliares. Una miniatura vinculada a una narración selecciona esa foto en el marco grande.
-6. **Edición:** título, historia, fecha, lugar y personas se actualizan con `PATCH /events/:id`. Cada narración existente se modifica con `PATCH /events/:eventId/narrations/:narrationId`, con título, persona, transcripción y foto relacionada. **Guardar cambios** persiste metadatos y narraciones pendientes y vuelve a lectura. Las subidas y eliminaciones de medios se aplican al terminar la llamada correspondiente.
+6. **Edición:** desde el lector, **Editar recuerdo** cambia al modo de edición de esa misma historia. Título, historia, fecha, lugar y personas se actualizan con `PATCH /events/:id`. Cada narración existente se modifica con `PATCH /events/:eventId/narrations/:narrationId`, con título, persona, transcripción y foto relacionada. **Guardar cambios** vuelve a lectura. Las subidas y eliminaciones de medios se aplican al terminar la llamada correspondiente.
 7. **Personas:** `people-page.component` mantiene el catálogo por cuenta con `GET/POST/PATCH/DELETE /people`. Borrar una persona elimina sus relaciones; conserva el recuerdo y el audio.
 
 ### Modelo de datos activo

@@ -17,8 +17,6 @@ export const routes: Routes = [
       { path: 'collections/:id/edit', loadComponent: () => import('./features/collections/collection-form-page.component').then((module) => module.CollectionFormPageComponent) },
       { path: 'collections/:id/read', loadComponent: () => import('./features/reader/reader-page.component').then((module) => module.ReaderPageComponent) },
       { path: 'collections/:id', loadComponent: () => import('./features/collections/collection-detail-page.component').then((module) => module.CollectionDetailPageComponent) },
-      { path: 'events/new', loadComponent: () => import('./features/events/event-form-page.component').then((module) => module.EventFormPageComponent) },
-      { path: 'events/:id/edit', loadComponent: () => import('./features/events/event-form-page.component').then((module) => module.EventFormPageComponent) },
       { path: 'events/:id', loadComponent: () => import('./features/events/event-detail-page.component').then((module) => module.EventDetailPageComponent) },
     ],
   },

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -10,6 +10,9 @@ import { CollectionDetail, EventPhoto, EventRecord, MemoriaApiService, Narration
 import { OfflineCollectionService } from '../../core/offline/offline-collection.service';
 
 interface NarrationDraft { title: string; speakerId: string; relatedPhotoAssetId: string; transcript: string; }
+interface PhotoDraft { id: string; file: File; url: string; }
+interface NewNarrationDraft { id: string; file: File; url: string; title: string; speakerPersonId: string; relatedPhotoId: string; }
+interface ReaderPhoto { id: string; src: string; alt: string; persisted?: EventPhoto; draftId?: string; }
 
 @Component({
   selector: 'app-reader-page',
@@ -18,7 +21,7 @@ interface NarrationDraft { title: string; speakerId: string; relatedPhotoAssetId
   templateUrl: './reader-page.component.html',
   styleUrl: './reader-page.component.scss',
 })
-export class ReaderPageComponent {
+export class ReaderPageComponent implements OnDestroy {
   private readonly api = inject(MemoriaApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -27,6 +30,7 @@ export class ReaderPageComponent {
   readonly people = signal<Person[]>([]);
   readonly index = signal(0);
   readonly photoIndex = signal(0);
+  readonly createMode = signal(false);
   readonly editMode = signal(false);
   readonly dirty = signal(false);
   readonly saving = signal(false);
@@ -46,6 +50,11 @@ export class ReaderPageComponent {
   readonly narrationTitle = signal('');
   readonly uploadError = signal('');
   readonly narrationDrafts = signal<Record<string, NarrationDraft>>({});
+  readonly photoDrafts = signal<PhotoDraft[]>([]);
+  readonly newNarrationDrafts = signal<NewNarrationDraft[]>([]);
+  readonly photoAssetIds = signal<Record<string, string>>({});
+  readonly createdEventId = signal<string | null>(null);
+  readonly creating = signal(false);
   readonly narrationsDirty = computed(() => this.narrations().some((voice) => this.isNarrationDirty(voice)));
   readonly hasUnsavedChanges = computed(() => this.dirty() || this.narrationsDirty());
   readonly items = computed(() => {
@@ -56,12 +65,35 @@ export class ReaderPageComponent {
       : items;
   });
   readonly current = computed(() => this.items()[this.index()]?.event ?? null);
+  readonly activeEvent = computed<EventRecord | null>(() => this.current() ?? (this.createMode() ? {
+    id: '', title: this.editTitle(), description: this.editDescription() || null,
+    dateStart: this.editDate() || null, locationName: this.editLocation() || null,
+    createdAt: '', updatedAt: '', photos: [], narrations: [], people: [],
+  } : null));
   readonly photos = computed(() => [...(this.current()?.photos ?? [])].sort((a, b) => a.position - b.position));
   readonly currentPhoto = computed(() => this.photos()[this.photoIndex()] ?? null);
+  readonly readerPhotos = computed<ReaderPhoto[]>(() => {
+    const saved = this.photos().map((photo) => ({
+      id: photo.id,
+      src: this.assetUrl(photo.asset.id),
+      alt: photo.caption || this.current()?.title || 'Fotografía del recuerdo',
+      persisted: photo,
+    }));
+    return this.createMode()
+      ? [...saved, ...this.photoDrafts().map((draft) => ({ id: draft.id, src: draft.url, alt: draft.file.name, draftId: draft.id }))]
+      : saved;
+  });
+  readonly readerPhoto = computed(() => this.readerPhotos()[this.photoIndex()] ?? null);
   readonly narrations = computed(() => [...(this.current()?.narrations ?? [])].sort((a, b) => a.position - b.position));
   private recorder?: MediaRecorder;
   private audioChunks: BlobPart[] = [];
+  private previousIndex = 0;
   readonly recording = signal(false);
+
+  ngOnDestroy(): void {
+    this.clearPhotoDrafts();
+    for (const draft of this.newNarrationDrafts()) URL.revokeObjectURL(draft.url);
+  }
 
   constructor() {
     this.api.getPeople().subscribe({ next: (people) => this.people.set(people) });
@@ -71,11 +103,19 @@ export class ReaderPageComponent {
       next: (collection) => {
         this.collection.set(collection);
         const requestedEvent = this.route.snapshot.queryParamMap.get('eventId');
+        let requestedPosition = -1;
         if (requestedEvent) {
-          const position = this.items().findIndex((item) => item.eventId === requestedEvent);
-          if (position >= 0) this.index.set(position);
+          requestedPosition = this.items().findIndex((item) => item.eventId === requestedEvent);
+          if (requestedPosition >= 0) this.index.set(requestedPosition);
         }
         this.loading.set(false);
+        if (this.route.snapshot.queryParamMap.get('create') === 'true') {
+          if (requestedPosition >= 0 && this.current()) {
+            this.beginEdit();
+            this.createMode.set(true);
+            this.createdEventId.set(requestedEvent);
+          } else this.beginCreate(false);
+        }
       },
       error: () => { this.error.set('No se pudo abrir esta colección.'); this.loading.set(false); },
     });
@@ -96,10 +136,11 @@ export class ReaderPageComponent {
   }
 
   movePhoto(delta: -1 | 1): void {
-    this.photoIndex.update((index) => Math.max(0, Math.min(this.photos().length - 1, index + delta)));
+    this.photoIndex.update((index) => Math.max(0, Math.min(this.readerPhotos().length - 1, index + delta)));
   }
 
   reorderPhoto(delta: -1 | 1): void {
+    if (this.createMode()) return;
     const event = this.current();
     const currentPhotos = this.photos();
     const fromIndex = this.photoIndex();
@@ -146,6 +187,162 @@ export class ReaderPageComponent {
     this.dirty.set(false);
     this.uploadError.set('');
     this.editMode.set(true);
+  }
+
+  beginCreate(updateUrl = true): void {
+    if (this.uploading() || this.recording() || this.saving()) return;
+    this.previousIndex = Math.max(0, this.index());
+    this.index.set(-1);
+    this.clearPhotoDrafts();
+    this.clearNewNarrations();
+    this.photoAssetIds.set({});
+    this.createdEventId.set(null);
+    this.editTitle.set('');
+    this.editDescription.set('');
+    this.editDate.set('');
+    this.editLocation.set('');
+    this.selectedPeople.set([]);
+    this.newPersonName.set('');
+    this.narrationTitle.set('');
+    this.speakerPersonId.set('');
+    this.relatedPhotoAssetId.set('');
+    this.photoIndex.set(0);
+    this.dirty.set(false);
+    this.uploadError.set('');
+    this.createMode.set(true);
+    this.editMode.set(true);
+    if (updateUrl) void this.router.navigate([], { relativeTo: this.route, queryParams: { create: 'true', eventId: null }, queryParamsHandling: 'merge', replaceUrl: true });
+  }
+
+  cancelCreate(): void {
+    const hasDraft = !!(this.editTitle().trim() || this.editDescription().trim() || this.editDate() || this.editLocation().trim() ||
+      this.selectedPeople().length || this.photoDrafts().length || this.newNarrationDrafts().length);
+    const message = this.createdEventId()
+      ? 'El recuerdo ya se creó. ¿Volver a la lectura y conservar lo que ya se guardó?'
+      : 'Hay datos sin guardar. ¿Descartarlos y volver a la lectura?';
+    if ((this.createdEventId() || hasDraft) && !window.confirm(message)) return;
+    if (!this.createdEventId()) this.index.set(Math.min(this.previousIndex, this.items().length - 1));
+    this.clearPhotoDrafts();
+    this.clearNewNarrations();
+    this.createMode.set(false);
+    this.editMode.set(false);
+    this.dirty.set(false);
+    this.uploadError.set('');
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { create: null }, queryParamsHandling: 'merge', replaceUrl: true });
+  }
+
+  selectCreatePhotos(input: HTMLInputElement): void {
+    const files = Array.from(input.files ?? []).filter((file) => file.type.startsWith('image/'));
+    input.value = '';
+    const drafts = files.map((file) => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) }));
+    this.photoDrafts.update((items) => [...items, ...drafts]);
+    if (drafts.length) this.photoIndex.set(this.readerPhotos().length - 1);
+  }
+
+  removePhotoDraft(id: string): void {
+    const draft = this.photoDrafts().find((item) => item.id === id);
+    if (!draft) return;
+    URL.revokeObjectURL(draft.url);
+    this.photoDrafts.update((items) => items.filter((item) => item.id !== id));
+    this.newNarrationDrafts.update((items) => items.map((item) => item.relatedPhotoId === id ? { ...item, relatedPhotoId: '' } : item));
+    this.photoIndex.set(Math.max(0, Math.min(this.readerPhotos().length - 1, this.photoIndex())));
+  }
+
+  selectNewAudios(input: HTMLInputElement): void {
+    const files = Array.from(input.files ?? []).filter((file) => file.type.startsWith('audio/') || /\.(m4a|mp3|wav|ogg|webm)$/i.test(file.name));
+    input.value = '';
+    this.newNarrationDrafts.update((items) => [...items, ...files.map((file) => ({
+      id: crypto.randomUUID(), file, url: URL.createObjectURL(file),
+      title: this.narrationTitle().trim() || file.name.replace(/\.[^.]+$/, '') || 'Narración',
+      speakerPersonId: this.speakerPersonId(), relatedPhotoId: this.relatedPhotoAssetId(),
+    }))]);
+    this.narrationTitle.set('');
+  }
+
+  updateNewNarration(id: string, field: 'title' | 'speakerPersonId' | 'relatedPhotoId', value: string): void {
+    this.newNarrationDrafts.update((items) => items.map((item) => item.id === id ? { ...item, [field]: value } : item));
+  }
+
+  removeNewNarration(id: string): void {
+    const draft = this.newNarrationDrafts().find((item) => item.id === id);
+    if (draft) URL.revokeObjectURL(draft.url);
+    this.newNarrationDrafts.update((items) => items.filter((item) => item.id !== id));
+  }
+
+  newAudioUrl(draft: NewNarrationDraft): string { return draft.url; }
+
+  async saveNewMemory(): Promise<void> {
+    const collection = this.collection();
+    const title = this.editTitle().trim();
+    if (!collection || this.creating()) return;
+    if (!title) { this.uploadError.set('El recuerdo necesita un título.'); return; }
+    if (this.newNarrationDrafts().some((draft) => !draft.title.trim())) { this.uploadError.set('Escribe un título para cada narración.'); return; }
+    this.creating.set(true);
+    this.uploadError.set('');
+    let failures = 0;
+    try {
+      const input = {
+        title,
+        description: this.editDescription().trim() || null,
+        dateStart: this.editDate() || null,
+        locationName: this.editLocation().trim() || null,
+        personIds: this.selectedPeople(),
+        collectionId: collection.id,
+      };
+      let event = this.createdEventId() ? this.current() : null;
+      if (!event) {
+        event = await firstValueFrom(this.api.createEvent(input));
+        event = { ...event, photos: [], narrations: [], people: this.selectedPeople().map((id) => {
+          const person = this.people().find((item) => item.id === id);
+          return person ? { person } : null;
+        }).filter((link): link is { person: Person } => !!link) };
+        this.createdEventId.set(event.id);
+        const currentCollection = this.collection();
+        if (currentCollection) this.collection.set({
+          ...currentCollection,
+          items: [...currentCollection.items, { collectionId: currentCollection.id, eventId: event.id, position: currentCollection.items.length, event }],
+        });
+        this.index.set(this.items().findIndex((item) => item.eventId === event!.id));
+        void this.router.navigate([], { relativeTo: this.route, queryParams: { create: 'true', eventId: event.id }, queryParamsHandling: 'merge', replaceUrl: true });
+      } else {
+        event = await firstValueFrom(this.api.updateEvent(event.id, input));
+        this.setCurrent({ ...this.current()!, ...event, photos: this.current()?.photos ?? [], narrations: this.current()?.narrations ?? [], people: this.selectedPeople().map((id) => {
+          const person = this.people().find((item) => item.id === id);
+          return person ? { person } : null;
+        }).filter((link): link is { person: Person } => !!link) });
+      }
+
+      for (const draft of [...this.photoDrafts()]) {
+        try {
+          const photo = await firstValueFrom(this.api.uploadPhoto(event.id, draft.file));
+          this.photoAssetIds.update((ids) => ({ ...ids, [draft.id]: photo.asset.id }));
+          this.updateCurrent((current) => ({ ...current, photos: [...(current.photos ?? []), photo] }));
+          this.removePhotoDraft(draft.id);
+        } catch { failures += 1; }
+      }
+      for (const draft of [...this.newNarrationDrafts()]) {
+        try {
+          if (this.photoDrafts().some((photo) => photo.id === draft.relatedPhotoId)) throw new Error('La foto relacionada no se ha guardado todavía');
+          const relatedPhotoId = this.photoAssetIds()[draft.relatedPhotoId] ?? draft.relatedPhotoId;
+          if (draft.relatedPhotoId && !relatedPhotoId) throw new Error('Foto relacionada pendiente');
+          const speaker = this.people().find((person) => person.id === draft.speakerPersonId)?.name ?? '';
+          const voice = await firstValueFrom(this.api.uploadNarration(event.id, draft.file, draft.title.trim(), speaker, '', draft.file.name, relatedPhotoId));
+          this.updateCurrent((current) => ({ ...current, narrations: [...(current.narrations ?? []), voice] }));
+          this.removeNewNarration(draft.id);
+        } catch { failures += 1; }
+      }
+      if (failures) {
+        this.uploadError.set(`El recuerdo ya está creado. ${failures} archivo(s) no se pudieron guardar; vuelve a intentarlo para completar la historia.`);
+        return;
+      }
+      this.createMode.set(false);
+      this.editMode.set(false);
+      this.dirty.set(false);
+      this.createdEventId.set(null);
+      void this.router.navigate([], { relativeTo: this.route, queryParams: { create: null, eventId: event.id }, queryParamsHandling: 'merge', replaceUrl: true });
+    } catch {
+      this.uploadError.set('No se pudo crear el recuerdo. Revisa la conexión e inténtalo de nuevo.');
+    } finally { this.creating.set(false); }
   }
 
   markDirty(): void { this.dirty.set(true); }
@@ -250,6 +447,7 @@ export class ReaderPageComponent {
   }
 
   uploadPhotos(input: HTMLInputElement): void {
+    if (this.createMode()) { this.selectCreatePhotos(input); return; }
     const event = this.current();
     const files = Array.from(input.files ?? []);
     input.value = '';
@@ -268,6 +466,7 @@ export class ReaderPageComponent {
   }
 
   uploadAudios(input: HTMLInputElement): void {
+    if (this.createMode()) { this.selectNewAudios(input); return; }
     const event = this.current();
     const files = Array.from(input.files ?? []);
     input.value = '';
@@ -308,6 +507,15 @@ export class ReaderPageComponent {
         stream.getTracks().forEach((track) => track.stop());
         const file = new File([blob], `${this.narrationTitle().trim() || 'Narración'}.webm`, { type: blob.type });
         this.recording.set(false);
+        if (this.createMode()) {
+          if (file.size) this.newNarrationDrafts.update((items) => [...items, {
+            id: crypto.randomUUID(), file, url: URL.createObjectURL(file),
+            title: this.narrationTitle().trim() || `Narración ${items.length + 1}`,
+            speakerPersonId: this.speakerPersonId(), relatedPhotoId: this.relatedPhotoAssetId(),
+          }]);
+          this.narrationTitle.set('');
+          return;
+        }
         const current = this.current();
         if (!current || !file.size) return;
         this.uploading.set(true);
@@ -395,5 +603,15 @@ export class ReaderPageComponent {
   private updateCurrent(update: (event: EventRecord) => EventRecord): void {
     const event = this.current();
     if (event) this.setCurrent(update(event));
+  }
+
+  private clearPhotoDrafts(): void {
+    for (const draft of this.photoDrafts()) URL.revokeObjectURL(draft.url);
+    this.photoDrafts.set([]);
+  }
+
+  private clearNewNarrations(): void {
+    for (const draft of this.newNarrationDrafts()) URL.revokeObjectURL(draft.url);
+    this.newNarrationDrafts.set([]);
   }
 }

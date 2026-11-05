@@ -17,7 +17,7 @@
           {{ current.description || 'Cada recuerdo abre una puerta a su historia.' }}
         </p>
         <div class="hero-actions">
-          <a class="hero-primary" mat-flat-button color="primary" [routerLink]="['/events/new']" [queryParams]="{collectionId: current.id}">
+          <a class="hero-primary" mat-flat-button color="primary" [routerLink]="['/collections', current.id, 'read']" [queryParams]="{create: true}">
             Añadir recuerdo
           </a>
           @if (current.items.length) {
@@ -67,7 +67,7 @@
           <span class="empty-mark" aria-hidden="true">✦</span>
           <h3>El primer recuerdo empieza con una historia.</h3>
           <p>Añade un momento, una fotografía y las voces que lo recuerdan.</p>
-          <a mat-flat-button color="primary" [routerLink]="['/events/new']" [queryParams]="{collectionId: current.id}">
+          <a mat-flat-button color="primary" [routerLink]="['/collections', current.id, 'read']" [queryParams]="{create: true}">
             Crear primer recuerdo
           </a>
           <button mat-stroked-button type="button" (click)="toggleExisting()">Añadir recuerdo existente</button>
